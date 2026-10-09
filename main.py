@@ -11,7 +11,7 @@ from google import genai
 
 APP_TITLE = "FC 27 AI Coach API"
 MAX_FILE_MB = int(os.getenv("MAX_FILE_MB", "80"))
-MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 app = FastAPI(title=APP_TITLE, version="2.0.0")
