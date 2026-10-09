@@ -134,7 +134,7 @@ async def analyze(video: UploadFile = File(...), focus: str = "general"):
         if getattr(uploaded_file, "state", None) and uploaded_file.state.name == "FAILED":
             raise HTTPException(status_code=422, detail="Google could not process this video. Try MP4 format.")
 
-               models_to_try = [MODEL, "gemini-3.7-flash"]
+        models_to_try = [MODEL, "gemini-3.7-flash"]
         response = None
         last_error = None
 
@@ -190,28 +190,6 @@ async def analyze(video: UploadFile = File(...), focus: str = "general"):
             if response is not None:
                 break
 
-            if last_error is not None:
-                error_text = str(last_error).lower()
-                temporary_error = any(
-                    marker in error_text
-                    for marker in [
-                        "429",
-                        "500",
-                        "502",
-                        "503",
-                        "504",
-                        "unavailable",
-                        "resource_exhausted",
-                        "internal error",
-                        "timeout",
-                        "timed out",
-                        "connection",
-                        "temporarily",
-                    ]
-                )
-
-                if not temporary_error:
-                    raise last_error
 
         if response is None:
             raise last_error or RuntimeError("AI analysis failed.")
