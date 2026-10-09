@@ -134,13 +134,87 @@ async def analyze(video: UploadFile = File(...), focus: str = "general"):
         if getattr(uploaded_file, "state", None) and uploaded_file.state.name == "FAILED":
             raise HTTPException(status_code=422, detail="Google could not process this video. Try MP4 format.")
 
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=[
-                uploaded_file,
-                PROMPT + f"\nUser-selected coaching focus: {focus}. If general, cover the most important visible gameplay decisions."
-            ],
-        )
+               models_to_try = [MODEL, "gemini-3.7-flash"]
+        response = None
+        last_error = None
+
+        for model_name in dict.fromkeys(models_to_try):
+            for attempt in range(2):
+                try:
+                    print(
+                        f"Trying AI model: {model_name}, "
+                        f"attempt {attempt + 1}/2"
+                    )
+
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=[
+                            uploaded_file,
+                            PROMPT
+                            + f"\nUser-selected coaching focus: {focus}. "
+                            "If general, cover the most important decisions.",
+                        ],
+                    )
+
+                    last_error = None
+                    break
+
+                except Exception as exc:
+                    last_error = exc
+                    error_text = str(exc).lower()
+
+                    temporary_error = any(
+                        marker in error_text
+                        for marker in [
+                            "429",
+                            "500",
+                            "502",
+                            "503",
+                            "504",
+                            "unavailable",
+                            "resource_exhausted",
+                            "internal error",
+                            "timeout",
+                            "timed out",
+                            "connection",
+                            "temporarily",
+                        ]
+                    )
+
+                    if not temporary_error:
+                        break
+
+                    if attempt == 0:
+                        time.sleep(2)
+
+            if response is not None:
+                break
+
+            if last_error is not None:
+                error_text = str(last_error).lower()
+                temporary_error = any(
+                    marker in error_text
+                    for marker in [
+                        "429",
+                        "500",
+                        "502",
+                        "503",
+                        "504",
+                        "unavailable",
+                        "resource_exhausted",
+                        "internal error",
+                        "timeout",
+                        "timed out",
+                        "connection",
+                        "temporarily",
+                    ]
+                )
+
+                if not temporary_error:
+                    raise last_error
+
+        if response is None:
+            raise last_error or RuntimeError("AI analysis failed.")
         result = extract_json(getattr(response, "text", "") or "")
         # Keep output safe and predictable for the frontend.
         result.setdefault("overall_score", 50)
