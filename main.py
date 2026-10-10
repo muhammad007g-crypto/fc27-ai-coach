@@ -4,15 +4,16 @@ import os
 import re
 import tempfile
 import time
+import uuid
 from pathlib import Path
 
 import cv2
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 
 APP_TITLE = "FC 27 AI Coach API"
-MAX_FILE_MB = int(os.getenv("MAX_FILE_MB", "80"))
+MAX_FILE_MB = int(os.getenv("MAX_FILE_MB", "400"))
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -33,7 +34,7 @@ def root():
         "status": "ok",
         "model": MODEL,
         "configured": bool(API_KEY),
-        "message": "POST a gameplay video to /analyze.",
+        "message": "POST short clips to /analyze or longer clips to /analyze-async, then poll /jobs/{job_id}.",
     }
 
 
@@ -168,161 +169,181 @@ def add_gameplay_frames(result: dict, video_path: str) -> None:
             capture.release()
 
 
-@app.post("/analyze")
-async def analyze(video: UploadFile = File(...), focus: str = "general"):
-    if not API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="The backend has no GEMINI_API_KEY configured yet.",
-        )
+# In-memory job storage is suitable for this single-instance MVP. If Render restarts,
+# active jobs are lost; persistent job storage would be needed for production.
+JOBS: dict[str, dict] = {}
 
+
+def save_upload_to_temp(video: UploadFile, ext: str) -> str:
+    """Stream upload to disk in chunks instead of holding a long video in RAM."""
+    temp_path = None
+    total = 0
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext or ".mp4") as tmp:
+            temp_path = tmp.name
+            while True:
+                chunk = video.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > MAX_FILE_MB * 1024 * 1024:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Video exceeds the {MAX_FILE_MB} MB server limit. Compress/export at 720p and try again.",
+                    )
+                tmp.write(chunk)
+        if total == 0:
+            raise HTTPException(status_code=400, detail="The uploaded video is empty.")
+        return temp_path
+    except Exception:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
+
+
+def analyze_saved_video(temp_path: str, focus: str) -> dict:
+    """Upload a saved video to Gemini, wait for processing, analyze, and attach frames."""
+    if not API_KEY:
+        raise RuntimeError("The backend has no GEMINI_API_KEY configured.")
+
+    client = genai.Client(api_key=API_KEY)
+    uploaded_file = client.files.upload(file=temp_path)
+
+    # Long videos may take several minutes for Gemini to finish processing.
+    deadline = time.time() + 900
+    while (
+        getattr(uploaded_file, "state", None)
+        and uploaded_file.state.name == "PROCESSING"
+    ):
+        if time.time() > deadline:
+            raise RuntimeError("Google video processing exceeded 15 minutes. Try a compressed 720p clip.")
+        time.sleep(3)
+        uploaded_file = client.files.get(name=uploaded_file.name)
+
+    if getattr(uploaded_file, "state", None) and uploaded_file.state.name == "FAILED":
+        raise RuntimeError("Google could not process this video. Try MP4 format or export it at 720p.")
+
+    models_to_try = [MODEL, "gemini-3.7-flash"]
+    response = None
+    last_error = None
+    for model_name in dict.fromkeys(models_to_try):
+        for attempt in range(2):
+            try:
+                print(f"Trying AI model: {model_name}, attempt {attempt + 1}/2")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[
+                        uploaded_file,
+                        PROMPT + "\nAnalyze the full uploaded video chronologically, including the beginning, middle, and end. Do not treat the clip as if it were only a short excerpt. "
+                        + f"\nUser-selected coaching focus: {focus}. If general, cover the most important decisions.",
+                    ],
+                )
+                last_error = None
+                break
+            except Exception as exc:
+                last_error = exc
+                error_text = str(exc).lower()
+                temporary_error = any(marker in error_text for marker in [
+                    "429", "500", "502", "503", "504", "unavailable",
+                    "resource_exhausted", "internal error", "timeout", "timed out",
+                    "connection", "temporarily",
+                ])
+                if not temporary_error:
+                    break
+                if attempt == 0:
+                    time.sleep(3)
+        if response is not None:
+            break
+        if last_error is not None:
+            error_text = str(last_error).lower()
+            temporary_error = any(marker in error_text for marker in [
+                "429", "500", "502", "503", "504", "unavailable",
+                "resource_exhausted", "internal error", "timeout", "timed out",
+                "connection", "temporarily",
+            ])
+            if not temporary_error:
+                raise last_error
+
+    if response is None:
+        raise last_error or RuntimeError("AI analysis failed.")
+
+    result = extract_json(getattr(response, "text", "") or "")
+    result.setdefault("overall_score", 50)
+    result.setdefault("headline", "FC 27 coaching report")
+    result.setdefault("summary", "Review the observations below.")
+    result.setdefault("category_scores", {})
+    result.setdefault("mistakes", [])
+    result.setdefault("improvement_plan", [])
+    result.setdefault("coach_focus", "Focus on the most clearly supported improvement.")
+    add_gameplay_frames(result, temp_path)
+    return result
+
+
+def run_analysis_job(job_id: str, temp_path: str, focus: str) -> None:
+    try:
+        JOBS[job_id] = {"status": "processing", "progress_message": "Gemini is analyzing the full video."}
+        result = analyze_saved_video(temp_path, focus)
+        JOBS[job_id] = {"status": "completed", "result": result}
+    except Exception as exc:
+        print(f"Long-video job {job_id} failed: {type(exc).__name__}: {exc}")
+        JOBS[job_id] = {"status": "failed", "detail": str(exc) or "AI analysis failed."}
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+def validate_upload(video: UploadFile) -> str:
     filename = video.filename or "gameplay.mp4"
     ext = Path(filename).suffix.lower()
     allowed = {".mp4", ".mov", ".webm", ".avi", ".mkv", ".mpeg", ".mpg", ".wmv", ".3gp"}
     if ext and ext not in allowed:
-        raise HTTPException(
-            status_code=415,
-            detail="Unsupported video extension. Please use MP4, MOV, or WebM.",
-        )
+        raise HTTPException(status_code=415, detail="Unsupported video extension. Please use MP4, MOV, or WebM.")
+    if not API_KEY:
+        raise HTTPException(status_code=503, detail="The backend has no GEMINI_API_KEY configured yet.")
+    return ext or ".mp4"
 
-    mime = video.content_type or "video/mp4"
-    if not mime.startswith("video/"):
-        mime = "video/mp4"
 
-    data = await video.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="The uploaded video is empty.")
-    if len(data) > MAX_FILE_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Video is too large. This server limit is {MAX_FILE_MB} MB; upload a shorter/compressed clip.",
-        )
-
+@app.post("/analyze-async")
+async def analyze_async(background_tasks: BackgroundTasks, video: UploadFile = File(...), focus: str = "general"):
+    """Upload a clip and return immediately; poll /jobs/{job_id} for the result."""
+    ext = validate_upload(video)
     temp_path = None
-    uploaded_file = None
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=ext or ".mp4") as tmp:
-            tmp.write(data)
-            temp_path = tmp.name
+        temp_path = save_upload_to_temp(video, ext)
+        job_id = uuid.uuid4().hex
+        JOBS[job_id] = {"status": "queued", "progress_message": "Upload received; waiting to analyze."}
+        background_tasks.add_task(run_analysis_job, job_id, temp_path, focus)
+        temp_path = None  # the background worker now owns cleanup
+        return {"job_id": job_id, "status": "queued", "message": "Upload complete. Analysis continues in the background."}
+    finally:
+        await video.close()
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
-        client = genai.Client(api_key=API_KEY)
-        uploaded_file = client.files.upload(file=temp_path)
 
-        # Wait for Google's file processing to finish.
-        deadline = time.time() + 180
-        while (
-            getattr(uploaded_file, "state", None)
-            and uploaded_file.state.name == "PROCESSING"
-        ):
-            if time.time() > deadline:
-                raise HTTPException(
-                    status_code=504,
-                    detail="Video processing timed out. Try a shorter clip.",
-                )
-            time.sleep(2)
-            uploaded_file = client.files.get(name=uploaded_file.name)
+@app.get("/jobs/{job_id}")
+def get_job(job_id: str):
+    job = JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Analysis job not found. The server may have restarted; please upload again.")
+    return job
 
-        if (
-            getattr(uploaded_file, "state", None)
-            and uploaded_file.state.name == "FAILED"
-        ):
-            raise HTTPException(
-                status_code=422,
-                detail="Google could not process this video. Try MP4 format.",
-            )
 
-        # Retry temporary service failures, then try the configured fallback model.
-        models_to_try = [MODEL, "gemini-3.7-flash"]
-        response = None
-        last_error = None
-
-        for model_name in dict.fromkeys(models_to_try):
-            for attempt in range(2):
-                try:
-                    print(f"Trying AI model: {model_name}, attempt {attempt + 1}/2")
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=[
-                            uploaded_file,
-                            PROMPT
-                            + f"\nUser-selected coaching focus: {focus}. "
-                            "If general, cover the most important decisions.",
-                        ],
-                    )
-                    last_error = None
-                    break
-                except Exception as exc:
-                    last_error = exc
-                    error_text = str(exc).lower()
-                    temporary_error = any(
-                        marker in error_text
-                        for marker in [
-                            "429",
-                            "500",
-                            "502",
-                            "503",
-                            "504",
-                            "unavailable",
-                            "resource_exhausted",
-                            "internal error",
-                            "timeout",
-                            "timed out",
-                            "connection",
-                            "temporarily",
-                        ]
-                    )
-                    if not temporary_error:
-                        break
-                    if attempt == 0:
-                        time.sleep(2)
-
-            if response is not None:
-                break
-
-            if last_error is not None:
-                error_text = str(last_error).lower()
-                temporary_error = any(
-                    marker in error_text
-                    for marker in [
-                        "429", "500", "502", "503", "504", "unavailable",
-                        "resource_exhausted", "internal error", "timeout",
-                        "timed out", "connection", "temporarily",
-                    ]
-                )
-                if not temporary_error:
-                    raise last_error
-
-        if response is None:
-            raise last_error or RuntimeError("AI analysis failed.")
-
-        result = extract_json(getattr(response, "text", "") or "")
-        result.setdefault("overall_score", 50)
-        result.setdefault("headline", "FC 27 coaching report")
-        result.setdefault("summary", "Review the observations below.")
-        result.setdefault("category_scores", {})
-        result.setdefault("mistakes", [])
-        result.setdefault("improvement_plan", [])
-        result.setdefault("coach_focus", "Focus on the most clearly supported improvement.")
-
-        # Add a screenshot near each timestamp for the HTML page to display.
-        # Screenshot extraction is optional; it will not invalidate the coaching report.
-        add_gameplay_frames(result, temp_path)
-        return result
-
+@app.post("/analyze")
+async def analyze(video: UploadFile = File(...), focus: str = "general"):
+    """Compatibility endpoint for short clips; long clips should use /analyze-async."""
+    ext = validate_upload(video)
+    temp_path = None
+    try:
+        temp_path = save_upload_to_temp(video, ext)
+        return analyze_saved_video(temp_path, focus)
     except HTTPException:
         raise
     except Exception as exc:
         print(f"Analysis error: {type(exc).__name__}: {exc}")
-        raise HTTPException(
-            status_code=502,
-            detail="AI analysis failed. Check the server logs, API key, model access, and usage limits.",
-        )
+        raise HTTPException(status_code=502, detail="AI analysis failed. Check Render logs, Gemini API configuration, model access, and usage limits. For long clips, use the background analysis flow.")
     finally:
-        try:
-            await video.close()
-        except Exception:
-            pass
+        await video.close()
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
-        # Uploaded Google files are intentionally not deleted here because SDK delete
-        # methods can vary; configure retention/cleanup for production deployments.
+
