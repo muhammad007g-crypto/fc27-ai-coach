@@ -61,7 +61,11 @@ Return ONLY valid JSON, with exactly this structure:
       "what_happened": "observable action only; distinguish observation from interpretation",
       "why_it_matters": "likely gameplay consequence, without claiming an outcome not shown",
       "better_choice": "one practical alternative the user could try",
-      "confidence": "High, Medium, or Low"
+      "confidence": "High, Medium, or Low",
+      "annotations": [
+        {"type": "circle", "x": 500, "y": 500, "r": 38, "label": "watch"},
+        {"type": "arrow", "x1": 300, "y1": 600, "x2": 500, "y2": 500, "label": "option"}
+      ]
     }
   ],
   "improvement_plan": ["3-5 specific practice actions"],
@@ -83,6 +87,7 @@ ACCURACY RULES — FOLLOW THESE STRICTLY:
 12. Tailor advice to FC gameplay: passing lanes, support options, spacing, defensive depth, pressing, jockeying, switching, attacking choices, and transition risks — but mention a mechanic only when relevant to what is visible.
 13. Be concise, specific, and constructive. Do not repeat the same issue in the mistakes, improvement plan, and coach focus using different words.
 14. Return valid JSON only. Do not include markdown fences or extra text.
+15. For each mistake, provide an "annotations" array with 0-3 visual marks that directly match the frame at that timestamp. Use coordinates normalized to a 0-1000 grid across the full screenshot: x=0 is left, x=1000 is right, y=0 is top, y=1000 is bottom. A circle must use {"type":"circle","x":number,"y":number,"r":number,"label":"short label"}; x/y are the circle center and r is a radius from 18 to 75. An arrow must use {"type":"arrow","x1":number,"y1":number,"x2":number,"y2":number,"label":"short label"}. For arrows, start at x1/y1 and point toward x2/y2. Use circles to identify a clearly visible player or space; use arrows only for a visible or tactically relevant movement/passing option. Do not guess exact positions. If the frame is too unclear, return an empty annotations array. Never add annotations that contradict the screenshot.
 """
 
 
@@ -143,13 +148,13 @@ def add_gameplay_frames(result: dict, video_path: str) -> None:
                 continue
 
             height, width = frame.shape[:2]
-            max_width = 1280
+            max_width = 640
             if width > max_width:
                 new_height = max(1, int(height * max_width / width))
                 frame = cv2.resize(frame, (max_width, new_height), interpolation=cv2.INTER_AREA)
 
             encoded_ok, buffer = cv2.imencode(
-                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65]
             )
             if not encoded_ok:
                 continue
