@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101828">
+<title>FC 27 AI Coach</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#edf2f7;font-family:Arial,system-ui,sans-serif}header{padding:18px 16px;border-bottom:1px solid #243044;background:#101828;position:sticky;top:0;z-index:2}.brand{font-weight:900;font-size:19px}.brand span{font-weight:500;font-size:12px;margin-left:5px;opacity:.7}.tag{font-size:12px;opacity:.6;margin-top:4px}main{max-width:760px;margin:auto;padding:16px}.card{background:#121c2e;border:1px solid #243044;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 8px 24px #0002}.hero h1{margin:0 0 8px;font-size:27px}.hero p,.muted{color:#aeb9c9;line-height:1.5}.upload{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:135px;border:2px dashed #42516b;border-radius:14px;cursor:pointer;text-align:center;gap:8px;margin-top:16px}.upload strong{font-size:17px}.upload small{color:#8f9bb0}.upload input{display:none}video{width:100%;border-radius:12px;margin-top:14px;max-height:430px;background:#000}button,.button{display:block;width:100%;border:0;border-radius:12px;padding:14px 16px;font-size:16px;font-weight:800;background:#5eead4;color:#062a2b;margin-top:12px;cursor:pointer}button:disabled{opacity:.45;cursor:wait}.secondary{background:#26344b;color:#edf2f7}.settings{display:flex;gap:8px;align-items:center}.settings input{min-width:0;flex:1;background:#0b1220;color:#fff;border:1px solid #35435a;border-radius:10px;padding:12px}.settings button{width:auto;margin:0;padding:12px}.hint{font-size:12px;color:#8f9bb0;line-height:1.45}.status{margin-top:12px;color:#5eead4;white-space:pre-wrap}.scoreCard{display:flex;gap:18px;align-items:center}.score{font-size:62px;font-weight:900;line-height:1}.scoreCard small{opacity:.6}.summary{flex:1}.summary h2{margin:0 0 7px}.summary p{margin:0;color:#aeb9c9;line-height:1.45}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}.metric{background:#121c2e;border:1px solid #243044;border-radius:14px;padding:14px}.metric b{font-size:25px}.metric small{display:block;color:#9aa7ba;margin-bottom:5px}.mistake{border-left:3px solid #f59e0b;padding:10px 12px;margin:10px 0;background:#172235;border-radius:0 10px 10px 0}.mistake b{display:block;margin-bottom:5px}.mistake span{color:#b7c1d0;line-height:1.45;font-size:14px}.timestamp{display:inline-block;color:#5eead4;font-weight:bold;margin-bottom:5px}.mistake-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.mistake-frame{margin:0;min-width:0}.frame-wrap{position:relative;width:100%;line-height:0}.mistake-frame img{display:block;width:100%;height:auto;max-height:300px;object-fit:contain;background:#05080e;border:1px solid #35435a;border-radius:10px;cursor:zoom-in}.annotation-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}.annotation-legend{font-size:12px;color:#fbbf24;margin-top:5px;line-height:1.3}.lightbox-frame{position:relative;display:flex;align-items:center;justify-content:center;max-width:100%;max-height:88vh}.lightbox-frame img{display:block;max-width:100%;max-height:88vh;object-fit:contain;border-radius:8px}.lightbox-frame .annotation-svg{width:100%;height:100%}.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:1000;display:none;align-items:center;justify-content:center;padding:18px}.lightbox.open{display:flex}.lightbox img{max-width:100%;max-height:88vh;object-fit:contain;border-radius:8px}.lightbox-close{position:absolute;top:14px;right:14px;width:auto;margin:0;padding:10px 15px;background:#26344b;color:#fff;font-size:22px;border:1px solid #667085;border-radius:50%;z-index:1001}.lightbox-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#d1d5db;font-size:13px}.mistake-frame figcaption{font-size:12px;color:#9eabbf;margin-top:6px}@media(min-width:600px){.mistake-layout.has-frame{grid-template-columns:minmax(0,1.15fr) minmax(220px,.85fr);align-items:start}}.card h2{margin-top:0;font-size:18px}.card li{margin:10px 0;color:#c7d0dc;line-height:1.45}.error{color:#fca5a5}.note{color:#9eabbf;font-size:13px}.note strong{color:#fff}.note p{line-height:1.45}@media(min-width:600px){.grid{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="brand">⚽ FC 27 <span>AI COACH</span></div><div class="tag">Real gameplay analysis • Vision AI</div></header>
+<main>
+<section class="card hero">
+<h1>Analyze your gameplay</h1>
+<p>Choose a short FC 27 clip. The AI will inspect the actual video and give evidence-based coaching feedback. Start with a 10–60 second clip.</p>
+<label class="upload"><input id="videoInput" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/*"><strong>＋ Select gameplay video</strong><small>MP4, MOV, WebM • Short clips work best</small></label>
+<video id="preview" controls playsinline hidden></video>
+<button id="analyzeBtn" disabled>Analyze with AI</button>
+<div id="status" class="status" role="status"></div>
+</section>
+
+<section class="card">
+<h2>Connect your AI server</h2>
+<p class="muted">Your Gemini API key belongs on the server, not in this page. Paste the deployed backend URL below.</p>
+<div class="settings"><input id="serverUrl" type="url" placeholder="https://your-app.onrender.com"><button id="saveUrl" class="secondary">Save</button></div>
+<p class="hint">Save the URL once. It is stored only in this browser on this device. The server URL must end without a trailing slash.</p>
+</section>
+
+<section id="report" hidden>
+<div class="card scoreCard"><div><small>OVERALL</small><div id="score" class="score">—</div><small>/ 100</small></div><div class="summary"><h2 id="headline">Analysis report</h2><p id="summaryText"></p></div></div>
+<div class="grid" id="scores"></div>
+<div class="card"><h2>⚠️ Mistakes found in your clip</h2><div id="mistakes"></div></div>
+<div class="card"><h2>🎯 What to improve</h2><ol id="improve"></ol></div>
+<div class="card"><h2>🧠 Coach's focus</h2><p id="coachFocus"></p></div>
+<div class="card"><h2>📌 Important limitation</h2><p class="muted">AI can misread fast gameplay or player positions. Review each timestamp in the video; scores are coaching estimates, not official EA FC statistics.</p></div>
+</section>
+<section class="card note"><strong>Privacy and cost</strong><p>Your chosen clip is sent to the backend URL you configure, then to Google's Gemini API for analysis. Use only a backend you trust. Gemini's free tier has usage limits and Google's free-tier data-use terms may differ from paid service terms.</p></section>
+</main>
+<div id="imageLightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged gameplay screenshot"><button type="button" id="closeLightbox" class="lightbox-close" aria-label="Close enlarged image">✕</button><div id="lightboxFrame" class="lightbox-frame"><img id="lightboxImage" alt="Enlarged gameplay screenshot"><svg id="lightboxAnnotations" class="annotation-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"></svg></div><div class="lightbox-hint">Tap outside the image or ✕ to close</div></div>
+<script>
+const input=document.getElementById('videoInput'), preview=document.getElementById('preview'), analyzeBtn=document.getElementById('analyzeBtn'), statusEl=document.getElementById('status'), report=document.getElementById('report'), serverInput=document.getElementById('serverUrl');
+serverInput.value=localStorage.getItem('fc27coach_server_url')||'';
+const lightbox=document.getElementById('imageLightbox'), lightboxImage=document.getElementById('lightboxImage'), lightboxAnnotations=document.getElementById('lightboxAnnotations');
+function closeLightbox(){lightbox.classList.remove('open');lightboxImage.removeAttribute('src');lightboxAnnotations.innerHTML='';}
+function svgAnnotations(items){const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));if(!Array.isArray(items))return '';let out='<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#ff3b30"/></marker></defs>';for(const a of items.slice(0,3)){const num=v=>Math.max(0,Math.min(1000,Number(v)||0));const label=a.label?`<text x="${num(a.x??a.x1)+8}" y="${Math.max(24,num(a.y??a.y1)-10)}" font-size="28" font-weight="bold" fill="#fff" stroke="#111827" stroke-width="5" paint-order="stroke">${esc(a.label)}</text>`:'';if(a.type==='arrow'&&a.x1!=null&&a.y1!=null&&a.x2!=null&&a.y2!=null){out+=`<line x1="${num(a.x1)}" y1="${num(a.y1)}" x2="${num(a.x2)}" y2="${num(a.y2)}" stroke="#ff3b30" stroke-width="9" marker-end="url(#arrowhead)"/>${label}`;}else if(a.type==='circle'&&a.x!=null&&a.y!=null){out+=`<circle cx="${num(a.x)}" cy="${num(a.y)}" r="${Math.max(12,Math.min(90,Number(a.r)||38))}" fill="none" stroke="#ffcc00" stroke-width="8"/>${label}`;}}return out;}
+
+document.getElementById('closeLightbox').addEventListener('click',closeLightbox);
+lightbox.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+document.getElementById('mistakes').addEventListener('click',e=>{const img=e.target.closest('.mistake-frame img');if(!img)return;lightboxImage.src=img.src;const svg=img.parentElement.querySelector('.annotation-svg');lightboxAnnotations.innerHTML=svg?svg.innerHTML:'';lightbox.classList.add('open');});
+document.getElementById('saveUrl').addEventListener('click',()=>{const v=serverInput.value.trim().replace(/\/+$/,'');localStorage.setItem('fc27coach_server_url',v);serverInput.value=v;statusEl.textContent=v?'Server URL saved.':'Server URL cleared.';statusEl.className='status';});
+let selectedFile=null, videoUrl=null;
+input.addEventListener('change',()=>{selectedFile=input.files&&input.files[0];report.hidden=true;statusEl.textContent='';analyzeBtn.disabled=!selectedFile;if(!selectedFile){preview.hidden=true;return;}if(videoUrl)URL.revokeObjectURL(videoUrl);videoUrl=URL.createObjectURL(selectedFile);preview.src=videoUrl;preview.hidden=false;});
+analyzeBtn.addEventListener('click',async()=>{
+ const base=(serverInput.value||localStorage.getItem('fc27coach_server_url')||'').trim().replace(/\/+$/,'');
+ if(!base){statusEl.textContent='First paste your deployed backend URL in “Connect your AI server” and press Save.';statusEl.className='status error';return;}
+ if(!selectedFile)return;
+ analyzeBtn.disabled=true;report.hidden=true;statusEl.className='status';statusEl.textContent='Uploading your clip to the AI server… This may take a few minutes.';
+ try{
+  const form=new FormData();form.append('video',selectedFile);form.append('focus','general');
+  const response=await fetch(base+'/analyze',{method:'POST',body:form});
+  const body=await response.json().catch(()=>({detail:'The server returned an unreadable response.'}));
+  if(!response.ok)throw new Error(body.detail||body.error||('Server error '+response.status));
+  renderReport(body);statusEl.textContent='Analysis complete.';
+ }catch(e){statusEl.className='status error';statusEl.textContent='Analysis failed: '+e.message+'\nCheck that the backend is deployed, the server URL is correct, and your Gemini API key is configured.';}
+ finally{analyzeBtn.disabled=false;}
+});
+function safeText(v,fallback='Not provided'){return (typeof v==='string'&&v.trim())?v:fallback;}
+function renderReport(d){
+ document.getElementById('score').textContent=Number.isFinite(Number(d.overall_score))?Math.max(0,Math.min(100,Number(d.overall_score))):'—';
+ document.getElementById('headline').textContent=safeText(d.headline,'Your FC 27 coaching report');
+ document.getElementById('summaryText').textContent=safeText(d.summary,'Review the observations below.');
+ const scoreObj=d.category_scores||{};
+ const cats=[['Defending','defending'],['Attacking','attacking'],['Passing','passing'],['Positioning','positioning'],['Decision making','decision_making']];
+ document.getElementById('scores').innerHTML=cats.map(([label,key])=>{let n=Number(scoreObj[key]);if(!Number.isFinite(n))n='—';return `<div class="metric"><small>${label}</small><b>${n}</b><small>/100</small></div>`}).join('');
+ const mistakes=Array.isArray(d.mistakes)?d.mistakes:[];
+ document.getElementById('mistakes').innerHTML=mistakes.length?mistakes.map((m,i)=>{
+  const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const candidate=m.screenshot_url||m.image_url||m.screenshot_data_url||m.frame_image||m.frame_base64||m.screenshot_base64||'';
+  let src='';
+  if(typeof candidate==='string'&&candidate.trim()){
+   const value=candidate.trim();
+   if(/^https:\/\//i.test(value)||/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(value))src=value;
+   else if(/^[A-Za-z0-9+/=\s]+$/.test(value)&&value.length>100)src='data:image/jpeg;base64,'+value.replace(/\s/g,'');
+  }
+  const marks=Array.isArray(m.annotations)?m.annotations:[];
+  const overlay=svgAnnotations(marks);
+  const image=src?`<figure class="mistake-frame"><div class="frame-wrap"><img loading="lazy" src="${escapeHtml(src)}" alt="Gameplay frame for mistake ${i+1}"><svg class="annotation-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">${overlay}</svg></div><figcaption>Gameplay frame near ${escapeHtml(safeText(m.timestamp,'the reported timestamp'))}</figcaption>${marks.length?'<div class="annotation-legend">Yellow circle = player/space to watch • Red arrow = movement or passing option</div>':''}</figure>`:'';
+  return `<div class="mistake"><div class="mistake-layout${src?' has-frame':''}"><div class="mistake-copy"><span class="timestamp">${escapeHtml(safeText(m.timestamp,'Timestamp uncertain'))}</span><b>${i+1}. ${escapeHtml(safeText(m.title,'Observation'))}</b><span><b>What happened:</b> ${escapeHtml(safeText(m.what_happened))}<br><b>Why it matters:</b> ${escapeHtml(safeText(m.why_it_matters))}<br><b>Better choice:</b> ${escapeHtml(safeText(m.better_choice))}<br><b>Confidence:</b> ${escapeHtml(safeText(m.confidence,'Medium'))}</span></div>${image}</div></div>`;
+ }).join(''):'<p class="muted">No clear mistakes were identified. Try a clip showing a full attack or defensive sequence.</p>';
+ const tips=Array.isArray(d.improvement_plan)?d.improvement_plan:[];
+ document.getElementById('improve').innerHTML=tips.length?tips.map(x=>`<li>${safeText(typeof x==='string'?x:x.action||x.description)}</li>`).join(''):'<li>Review the mistakes above and repeat the relevant situation in practice.</li>';
+ document.getElementById('coachFocus').textContent=safeText(d.coach_focus,'Focus on the clearest repeated issue identified in the clip.');
+ report.hidden=false;report.scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
