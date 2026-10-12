@@ -155,7 +155,7 @@ def add_gameplay_frames(result: dict, video_path: str) -> None:
                 frame = cv2.resize(frame, (max_width, new_height), interpolation=cv2.INTER_AREA)
 
             encoded_ok, buffer = cv2.imencode(
-                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95]
             )
             if not encoded_ok:
                 continue
