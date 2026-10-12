@@ -149,13 +149,13 @@ def add_gameplay_frames(result: dict, video_path: str) -> None:
                 continue
 
             height, width = frame.shape[:2]
-            max_width = 640
+            max_width = 1280
             if width > max_width:
                 new_height = max(1, int(height * max_width / width))
                 frame = cv2.resize(frame, (max_width, new_height), interpolation=cv2.INTER_AREA)
 
             encoded_ok, buffer = cv2.imencode(
-                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65]
+                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90]
             )
             if not encoded_ok:
                 continue
