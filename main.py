@@ -149,7 +149,7 @@ def add_gameplay_frames(result: dict, video_path: str) -> None:
                 continue
 
             height, width = frame.shape[:2]
-            max_width = 1280
+            max_width = 1920
             if width > max_width:
                 new_height = max(1, int(height * max_width / width))
                 frame = cv2.resize(frame, (max_width, new_height), interpolation=cv2.INTER_AREA)
