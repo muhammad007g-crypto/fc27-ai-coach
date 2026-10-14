@@ -99,7 +99,8 @@ STRICT ACCURACY RULES:
 17. Return valid JSON only. Do not include Markdown fences or additional text.
 18. Analyze only what is actually available in the supplied video. Never claim to have watched frames or sequences that were not provided to the model.
 19. Consistency matters: apply these same evidence standards every time. Prefer a stable, well-supported conclusion over a dramatic or overly detailed analysis.
-20. Every mistake must include an annotations array containing zero to three visual marks that directly match the event. Use an empty array when appropriate.
+20. Before reporting a mistake, verify that the visible sequence supports both the claimed action and its tactical consequence. If either is uncertain, lower confidence to Medium or Low, describe only what is visible, and do not present speculation as fact. Prefer the same clearly evidenced event over inventing a different explanation on repeated analyses.
+21. Every mistake must include an annotations array containing zero to three visual marks that directly match the event. Use an empty array when appropriate.
 
 """
 
