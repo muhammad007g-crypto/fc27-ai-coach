@@ -117,6 +117,23 @@ ANALYZE THESE 12 GAMEPLAY CATEGORIES:
 12. Predictable attacking patterns: identify repeated or easily anticipated attacking choices only when the video provides sufficient evidence.
 
 Evaluate all 12 categories internally for every analysis. Report only the strongest, clearly supported mistakes allowed by the existing reporting rules. Do not force a mistake into every category. If a category cannot be reliably assessed from the video, treat it as unconfirmed rather than guessing. Keep the existing JSON structure and all other instructions unchanged.
+SEQUENCE VERIFICATION AND CONFIDENCE RULES:
+
+1. Before reporting a mistake, examine the available video evidence around its timestamp, including earlier and later moments when available. Do not judge a moving gameplay situation from one isolated frame alone.
+
+2. Separate directly visible facts from tactical interpretations. Clearly describe only what the footage supports.
+
+3. Use High confidence only when the relevant player action, positioning, and claimed consequence are clearly supported by the available sequence. Use Medium or Low when any important part is uncertain.
+
+4. Never invent player identities, controller inputs, player-switching actions, passes, tackles, goals, or match outcomes. If the footage does not establish an action or consequence, do not state it as fact.
+
+5. For suspected defensive mistakes, check the positions and movement of the ball, attacker, controlled defender, covering defenders, and available passing lanes before explaining the mistake.
+
+6. For suspected attacking or passing mistakes, check which options were visibly available at that moment. Do not claim that a better option was obvious unless the footage supports that conclusion.
+
+7. Do not report the same event repeatedly under different descriptions. Prefer the clearest evidence-supported explanation.
+
+8. If the available video quality or sampling does not permit reliable verification, say so or omit the suspected mistake. Accuracy is more important than the number of mistakes reported.
 """
 
 
