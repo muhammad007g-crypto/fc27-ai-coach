@@ -101,7 +101,22 @@ STRICT ACCURACY RULES:
 19. Consistency matters: apply these same evidence standards every time. Prefer a stable, well-supported conclusion over a dramatic or overly detailed analysis.
 20. Before reporting a mistake, verify that the visible sequence supports both the claimed action and its tactical consequence. If either is uncertain, lower confidence to Medium or Low, describe only what is visible, and do not present speculation as fact. Prefer the same clearly evidenced event over inventing a different explanation on repeated analyses.
 21. Every mistake must include an annotations array containing zero to three visual marks that directly match the event. Use an empty array when appropriate.
+ANALYZE THESE 12 GAMEPLAY CATEGORIES:
 
+1. Bad player switching: identify only when the visible sequence supports a poor switch or its consequence.
+2. Pulling defenders out of position: look for defenders abandoning important spaces or marking responsibilities.
+3. Pressing at the wrong time: identify poorly timed pressure that visibly opens space or passing lanes.
+4. Giving opponents too much space: identify opponents receiving or advancing with avoidable freedom.
+5. Sprinting when it is unhelpful: assess visible movement and its consequences; never claim a sprint button was pressed unless directly observable.
+6. Passing to the wrong player: identify a pass when a clearly better, visible option was available.
+7. Missing obvious passing options: identify clearly visible, practical passing options that were overlooked.
+8. Holding the ball too long: identify avoidable delays that visibly allow pressure or close passing options.
+9. Rushing attacks: identify attacks forced forward despite clearly visible safer or more effective options.
+10. Poor defensive positioning: identify positioning that visibly weakens defensive coverage.
+11. Creating unnecessary gaps: identify avoidable spaces between defenders or midfielders that opponents can exploit.
+12. Predictable attacking patterns: identify repeated or easily anticipated attacking choices only when the video provides sufficient evidence.
+
+Evaluate all 12 categories internally for every analysis. Report only the strongest, clearly supported mistakes allowed by the existing reporting rules. Do not force a mistake into every category. If a category cannot be reliably assessed from the video, treat it as unconfirmed rather than guessing. Keep the existing JSON structure and all other instructions unchanged.
 """
 
 
